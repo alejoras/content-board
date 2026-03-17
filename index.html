@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Content Ideas Board</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #0f0f0f;
+    color: #e0e0e0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    min-height: 100vh;
+    padding: 32px;
+  }
+
+  header {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+
+  header h1 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #f0f0f0;
+  }
+
+  header span {
+    font-size: 12px;
+    color: #444;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .board {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    align-items: start;
+  }
+
+  .column {
+    background: #141414;
+    border-radius: 12px;
+    padding: 16px;
+    min-height: 200px;
+  }
+
+  .column-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #1f1f1f;
+  }
+
+  .column-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+  }
+
+  .col-raw .column-title   { color: #888; }
+  .col-ready .column-title { color: #BA99ED; }
+  .col-posted .column-title{ color: #4caf50; }
+
+  .column-count {
+    font-size: 11px;
+    color: #333;
+    background: #1a1a1a;
+    padding: 2px 8px;
+    border-radius: 20px;
+  }
+
+  .card {
+    background: #1c1c1c;
+    border: 1px solid #222;
+    border-radius: 10px;
+    padding: 14px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    position: relative;
+  }
+
+  .card:hover { border-color: #333; background: #202020; }
+  .card.expanded { border-color: #BA99ED44; }
+
+  .card-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #e8e8e8;
+    margin-bottom: 8px;
+    line-height: 1.4;
+  }
+
+  .card-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-bottom: 8px;
+  }
+
+  .tag {
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-weight: 500;
+  }
+
+  .tag-project-personal   { background: #2a2030; color: #BA99ED; }
+  .tag-project-clawoop    { background: #1e2535; color: #7aadff; }
+  .tag-project-gudink     { background: #1e2a20; color: #6fcf97; }
+  .tag-type               { background: #1f1f1f; color: #666; }
+  .tag-platform           { background: #1a1a1a; color: #555; border: 1px solid #2a2a2a; }
+
+  .card-preview {
+    font-size: 12px;
+    color: #555;
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .card-body {
+    display: none;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #222;
+  }
+
+  .card.expanded .card-body { display: block; }
+  .card.expanded .card-preview { display: none; }
+
+  .card-copy {
+    font-size: 12px;
+    color: #aaa;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    margin-bottom: 12px;
+  }
+
+  .card-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 5px 12px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+
+  .btn:hover { opacity: 0.8; }
+
+  .btn-copy    { background: #252525; color: #aaa; }
+  .btn-ready   { background: #2a1f40; color: #BA99ED; }
+  .btn-posted  { background: #1a2a1a; color: #6fcf97; }
+  .btn-raw     { background: #252525; color: #777; }
+
+  .card-date {
+    font-size: 10px;
+    color: #333;
+    margin-top: 10px;
+  }
+
+  .col-posted .card { opacity: 0.6; }
+  .col-posted .card:hover { opacity: 0.9; }
+
+  .empty-state {
+    font-size: 12px;
+    color: #2a2a2a;
+    text-align: center;
+    padding: 32px 0;
+  }
+
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(60px);
+    background: #1e1e1e;
+    border: 1px solid #333;
+    color: #aaa;
+    font-size: 12px;
+    padding: 10px 20px;
+    border-radius: 8px;
+    opacity: 0;
+    transition: all 0.2s;
+    pointer-events: none;
+  }
+
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Content Ideas Board</h1>
+  <span>Twitter/X · LinkedIn</span>
+</header>
+
+<div class="board">
+  <div class="column col-raw" id="col-raw">
+    <div class="column-header">
+      <span class="column-title">Raw</span>
+      <span class="column-count" id="count-raw">0</span>
+    </div>
+    <div class="cards" id="cards-raw"></div>
+    <div class="empty-state" id="empty-raw" style="display:none">No ideas yet</div>
+  </div>
+  <div class="column col-ready" id="col-ready">
+    <div class="column-header">
+      <span class="column-title">Ready</span>
+      <span class="column-count" id="count-ready">0</span>
+    </div>
+    <div class="cards" id="cards-ready"></div>
+    <div class="empty-state" id="empty-ready" style="display:none">Nothing queued</div>
+  </div>
+  <div class="column col-posted" id="col-posted">
+    <div class="column-header">
+      <span class="column-title">Posted</span>
+      <span class="column-count" id="count-posted">0</span>
+    </div>
+    <div class="cards" id="cards-posted"></div>
+    <div class="empty-state" id="empty-posted" style="display:none">Nothing posted yet</div>
+  </div>
+</div>
+
+<div class="toast" id="toast">Copied to clipboard</div>
+
+<script>
+const ideas = [
+  {
+    id: 1,
+    title: "The honest AI pitch",
+    project: ["CLAWOOP"],
+    tags: ["thought-leadership", "product", "hot-take"],
+    platform: "Twitter/X, LinkedIn",
+    status: "raw",
+    date: "2026-03-11",
+    copy: `Most AI platforms promise 15 agents orchestrating your entire business.
+
+We're not doing that.
+
+We're building something smaller. More honest. Automations that just... work. Meeting notes become action items. Action items become tasks. Tasks become content.
+
+Not magic. Not a revolution. Just time back in your day.
+
+The question we keep coming back to: what if AI could just do it?
+
+Not explain how. Not give you a prompt. Not require a workflow you have to maintain.
+
+Just do it.
+
+That's the whole thing.`
+  },
+  {
+    id: 2,
+    title: "Automating the GTM framework",
+    project: ["PERSONAL", "CLAWOOP"],
+    tags: ["behind-the-scenes", "thought-leadership", "story"],
+    platform: "Twitter/X, LinkedIn",
+    status: "raw",
+    date: "2026-03-11",
+    copy: `Building a GTM framework for our AI products.
+Decided to automate it instead of just documenting it.
+Five agents. Each one owns a vertical: content, growth, product, community. A sixth one acts as marketing lead and orchestrates the whole thing.
+Spun it up. Started testing.
+It's genuinely incredible.
+And now I can't stop thinking about the next step. What if the team doesn't have to touch it at all. What if the content just... goes out. Checked off. Done.
+We're not there yet. But we're close enough that the question feels real.
+Wild time to be building.`
+  },
+  {
+    id: 3,
+    title: "The only limit left is imagination",
+    project: ["PERSONAL"],
+    tags: ["thought-leadership", "hot-take"],
+    platform: "Twitter/X, LinkedIn",
+    status: "raw",
+    date: "2026-03-11",
+    copy: `Finally, the only limit left is imagination.
+Not budget. Not team size. Not technical skill.
+You can describe the end state of something you want to exist, and the system builds itself toward it.
+That's new. That's actually new.
+Most people haven't felt it yet. But once you do, you can't go back to thinking about building the way you used to.`
+  },
+  {
+    id: 4,
+    title: "Don't get caught by FOMO on AI agents",
+    project: ["PERSONAL"],
+    tags: ["hot-take", "thought-leadership"],
+    platform: "Twitter/X, LinkedIn",
+    status: "raw",
+    date: "2026-03-11",
+    copy: `My 2 cents:
+Don't get caught by FOMO on spending 4 hours a day building AI agents to 100x your outreach. While you're doing that, your competitor is quietly making their product a little more lovable.
+
+A more delightful product > 100x outreach.
+
+...coming from someone who markets an AI automation platform for a living.`
+  },
+  {
+    id: 5,
+    title: "AI-generated content curve",
+    project: ["PERSONAL"],
+    tags: ["hot-take", "thought-leadership"],
+    platform: "Twitter/X, LinkedIn",
+    status: "posted",
+    date: "2026-03-11",
+    copy: `90% of online content is already AI-generated.
+
+At what point does it stop being the internet and start being AI talking to itself.`
+  },
+  {
+    id: 6,
+    title: "Marketers barely scratching the surface",
+    project: ["PERSONAL"],
+    tags: ["thought-leadership", "hot-take", "lesson"],
+    platform: "Twitter/X, LinkedIn",
+    status: "raw",
+    date: "2026-03-11",
+    copy: `95% of marketers I know are barely scratching the surface of what AI automations can do.
+
+Not because they're lazy. Because no one's showing them what's actually possible.
+
+The "AI will replace you" narrative is a distraction. The real story: the marketers who learn these tools are doing in 2 hours what used to take a week. That gap is going to keep widening.
+
+It's not about keeping up. It's about getting your time back.`
+  },
+  {
+    id: 7,
+    title: "The cost of wasted time just went up",
+    project: ["PERSONAL"],
+    tags: ["thought-leadership", "hot-take"],
+    platform: "Twitter/X, LinkedIn",
+    status: "raw",
+    date: "2026-03-11",
+    copy: `Never been more aware of time than right now.
+There are tools sitting idle, waiting for a prompt. Waiting to research, write, build, analyze. On your behalf. The moment you open them, they start.
+That changes something in how a day feels.
+Every hour you don't use well isn't just lost. It's a team that showed up and you left in the lobby.
+I don't have a word for it yet. But it feels like the cost of wasted time just went up.`
+  },
+  {
+    id: 8,
+    title: "10 agents working simultaneously",
+    project: ["PERSONAL"],
+    tags: ["behind-the-scenes", "thought-leadership", "story"],
+    platform: "Twitter/X, LinkedIn",
+    status: "raw",
+    date: "2026-03-11",
+    copy: `Right now I have 10 agents working for me simultaneously. Different tasks. Text content, graphic content. With tools I designed myself and didn't have five minutes ago.
+
+That last part is the thing I can't stop thinking about.
+
+Not just that AI does the work. But that the tools themselves appear almost instantly. You think of something, you build it, it's running.
+
+What's possible in a week from now? A month?
+
+I genuinely can't fathom the speed. But I'm glad I'm in the middle of it.`
+  },
+  {
+    id: 10,
+    title: "Clawoop automation map",
+    project: ["CLAWOOP"],
+    tags: ["product", "thought-leadership"],
+    platform: "Twitter/X, LinkedIn",
+    status: "raw",
+    date: "2026-03-11",
+    copy: `Everything you can automate with Clawoop:
+
+📂 Clawoop
+┃
+┣ 📂 Sales
+┃ ┣ 📂 Lead Research
+┃ ┣ 📂 Outreach Sequences
+┃ ┣ 📂 CRM Updates
+┃ ┗ 📂 Pipeline Tracking
+┃
+┣ 📂 Marketing
+┃ ┣ 📂 Content Creation
+┃ ┣ 📂 Social Scheduling
+┃ ┣ 📂 Campaign Tracking
+┃ ┗ 📂 Competitor Monitoring
+┃
+┣ 📂 Research
+┃ ┣ 📂 Market Intelligence
+┃ ┣ 📂 News Monitoring
+┃ ┣ 📂 Trend Spotting
+┃ ┗ 📂 Reddit Radar
+┃
+┣ 📂 Productivity
+┃ ┣ 📂 Meeting Notes
+┃ ┣ 📂 Task Creation
+┃ ┣ 📂 Inbox Management
+┃ ┗ 📂 Weekly Reports
+┃
+┗ 📂 Finance
+  ┣ 📂 Invoice Tracking
+  ┣ 📂 Expense Monitoring
+  ┗ 📂 Revenue Reporting
+
+⚠️ Replace with real Clawoop template names before posting.`
+  },
+  {
+    id: 9,
+    title: "The 80% mentality",
+    project: ["PERSONAL", "CLAWOOP"],
+    tags: ["behind-the-scenes", "thought-leadership", "story"],
+    platform: "Twitter/X, LinkedIn",
+    status: "raw",
+    date: "2026-03-11",
+    copy: `LinkedIn:
+Built a graphics tool for Clawoop this week. On-brand, social-ready, multiple iterations in seconds.
+
+Will every output get a brand designer's stamp of approval? Probably not. Is it over 80% good every single time? Yes. Consistently.
+
+That's the bar. 80% good and ready now beats 100% perfect and ready next week.
+
+Scrappy, fast, versatile. That's the skill. The tool is just proof of it.
+
+Twitter/X:
+Built a graphics tool for Clawoop. On-brand, multiple iterations, ready in seconds.
+
+Not every output gets a brand designer's approval. But it's 80% good every time.
+
+80% good and ready now beats 100% perfect and ready never.
+
+Scrappy, fast, versatile. The tool is just proof of the mentality.`
+  },
+  {
+    id: 11,
+    title: "50 hours building a GTM automation system",
+    project: ["PERSONAL"],
+    tags: ["behind-the-scenes", "thought-leadership", "thread"],
+    platform: "Twitter/X, LinkedIn",
+    status: "raw",
+    date: "2026-03-12",
+    copy: `LinkedIn:
+50 hours went into building a 5-step GTM Automation System that creates an entire campaign from scratch using a team of 5 AI agents. Each one is an elite specialist in its own marketing vertical.
+
+Step 1: Brand Identity Extractor - Scrapes your website, builds a complete visual identity system.
+Step 2: Brand & GTM Brief - Crawls every page, researches competitors, produces a 10-section strategic doc.
+Step 3: Brand Strategy Coach - 15-min interactive session to pressure-test positioning.
+Step 4: Marketing War Room - 5 agents build the full campaign in parallel.
+Step 5: Brand Creative Suite - Generates a Graphics Generator + Content Machine.
+
+Output: full campaign dashboard with checklists, timelines, tasks, metrics, production-ready posts, and auto-generated graphics.
+
+From scraping your website and 15 minutes of brainstorming.
+
+Twitter/X: 8-tweet thread (see ideas.md for full copy)`
+  },
+  {
+    id: 12,
+    title: "One prompt, 8 GB back",
+    project: ["PERSONAL"],
+    tags: ["behind-the-scenes", "hot-take"],
+    platform: "Twitter/X",
+    status: "posted",
+    date: "2026-03-16",
+    copy: `One prompt. 8 GB back on my MacBook.
+
+Asked Claude to go through every installed app and flag anything to uninstall. Unsafe apps, things not opened in months, stuff not needed anymore.
+
+It found 12. Explained why for each one.
+
+One confirmation. It uninstalled all of them cleanly. Permissions, associated files, caches, leftover data. All gone. Two minutes.
+
+Includes the prompt in tweet 2.`
+  }
+];
+
+const projectClass = { PERSONAL: 'tag-project-personal', CLAWOOP: 'tag-project-clawoop', GUDINK: 'tag-project-gudink' };
+
+function renderCard(idea) {
+  const projects = idea.project.map(p => `<span class="tag ${projectClass[p]}">${p}</span>`).join('');
+  const tags = idea.tags.map(t => `<span class="tag tag-type">#${t}</span>`).join('');
+  const firstLine = idea.copy.split('\n')[0];
+
+  return `
+    <div class="card" id="card-${idea.id}" onclick="toggleCard(${idea.id})">
+      <div class="card-title">${idea.title}</div>
+      <div class="card-meta">${projects}${tags}</div>
+      <div class="card-preview">${firstLine}</div>
+      <div class="card-body">
+        <div class="card-copy">${idea.copy}</div>
+        <div class="card-actions">
+          <button class="btn btn-copy" onclick="copyText(event, ${idea.id})">Copy</button>
+          ${idea.status !== 'raw'    ? `<button class="btn btn-raw"    onclick="moveCard(event, ${idea.id}, 'raw')">Move to Raw</button>` : ''}
+          ${idea.status !== 'ready'  ? `<button class="btn btn-ready"  onclick="moveCard(event, ${idea.id}, 'ready')">Mark Ready</button>` : ''}
+          ${idea.status !== 'posted' ? `<button class="btn btn-posted" onclick="moveCard(event, ${idea.id}, 'posted')">Mark Posted</button>` : ''}
+        </div>
+        <div class="card-date">${idea.date}</div>
+      </div>
+    </div>`;
+}
+
+function render() {
+  ['raw', 'ready', 'posted'].forEach(status => {
+    const filtered = ideas.filter(i => i.status === status);
+    document.getElementById(`cards-${status}`).innerHTML = filtered.map(renderCard).join('');
+    document.getElementById(`count-${status}`).textContent = filtered.length;
+    document.getElementById(`empty-${status}`).style.display = filtered.length === 0 ? 'block' : 'none';
+  });
+}
+
+function toggleCard(id) {
+  document.getElementById(`card-${id}`).classList.toggle('expanded');
+}
+
+function moveCard(e, id, status) {
+  e.stopPropagation();
+  const idea = ideas.find(i => i.id === id);
+  idea.status = status;
+  render();
+  showToast(`Moved to ${status}`);
+}
+
+function copyText(e, id) {
+  e.stopPropagation();
+  const idea = ideas.find(i => i.id === id);
+  navigator.clipboard.writeText(idea.copy).then(() => showToast('Copied to clipboard'));
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+render();
+</script>
+</body>
+</html>
